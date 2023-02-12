@@ -3,6 +3,9 @@ package com.example.myyoutube
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.example.myyoutube.adapter.VideoAdapter
 import com.example.myyoutube.dto.VideoDTO
 import com.example.myyoutube.service.VideoService
 import retrofit2.Call
@@ -13,6 +16,8 @@ import retrofit2.converter.gson.GsonConverterFactory
 
 class MainActivity : AppCompatActivity() {
 
+    private lateinit var videoAdapter: VideoAdapter
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -20,6 +25,17 @@ class MainActivity : AppCompatActivity() {
         supportFragmentManager.beginTransaction()
             .replace(R.id.fragmentContainer, PlayerFragment())
             .commit()
+
+        videoAdapter = VideoAdapter(callback = { url, title ->
+            supportFragmentManager.fragments.find { it is PlayerFragment }?.let {
+                (it as PlayerFragment).play(url, title)
+            }
+        })
+
+        findViewById<RecyclerView>(R.id.mainRecyclerView).apply {
+            adapter = videoAdapter
+            layoutManager = LinearLayoutManager(context)
+        }
 
         getVideoList()
     }
@@ -38,9 +54,11 @@ class MainActivity : AppCompatActivity() {
                             Log.d("MainActivity", "response fail")
                             return
                         }
-                        response.body()?.let {
-                            Log.d("MainActivity", it.toString())
+                        response.body()?.let { videoDTO ->
+                            videoAdapter.submitList(videoDTO.videos)
                         }
+
+
                     }
 
                     override fun onFailure(call: Call<VideoDTO>, t: Throwable) {
